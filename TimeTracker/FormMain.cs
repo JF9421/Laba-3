@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Data.SQLite;
 
 namespace TimeTracker
 {
@@ -22,6 +23,8 @@ namespace TimeTracker
         private Timer pomodoroTimer = new Timer();
         private int pomodoroSecondsLeft = 25 * 60;
         private bool pomodoroRunning = false;
+
+        private string connectionString = @"Data Source=db4.db";
 
         public FormMain()
         {
@@ -435,6 +438,51 @@ namespace TimeTracker
             else
             {
                 MessageBox.Show("Выделите запись для редактирования.", "Редактирование", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                foreach (DataGridViewRow row in dataGridViewHistory.Rows)
+                {
+                    if (!row.IsNewRow)
+                    {
+                        SaveTaskToDatabase(
+                            row.Cells["dataGridViewTextBoxColumn1"].Value.ToString(),
+                            row.Cells["dataGridViewTextBoxColumn2"].Value.ToString(),
+                            row.Cells["dataGridViewTextBoxColumn3"].Value.ToString(),
+                            row.Cells["dataGridViewTextBoxColumn4"].Value?.ToString() ?? ""
+                        );
+                    }
+                }
+                MessageBox.Show("Данные успешно сохранены!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка: {ex.Message}");
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            ShowAllTasksForm form = new ShowAllTasksForm(connectionString);
+            form.ShowDialog();
+        }
+
+        private void SaveTaskToDatabase(string task, string date, string duration, string comment)
+        {
+            using (var conn = new SQLiteConnection(connectionString))
+            {
+                conn.Open();
+
+                var sql = $"INSERT INTO task(task, date, duration, comment) VALUES('{task}', '{date}', '{duration}', '{comment}')";
+
+                using (var cmd = new SQLiteCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
     }
